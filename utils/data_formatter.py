@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class DataFormatter:
@@ -169,8 +169,10 @@ class DataFormatter:
         try:
             # 获取最近7天的日期
             today = datetime.now()
-            dates = [(today - timedelta(days=i)).strftime('%Y%m%d') for i in range(7)]
-            display_dates = [(today - timedelta(days=i)).strftime('%m/%d') for i in range(7)][::-1]
+            dates = [(today - timedelta(days=i)).strftime("%Y%m%d") for i in range(7)]
+            display_dates = [
+                (today - timedelta(days=i)).strftime("%m/%d") for i in range(7)
+            ][::-1]
 
             # 初始化统计数据
             total_clicks = 0
@@ -182,117 +184,136 @@ class DataFormatter:
 
             # 按日期初始化每日数据
             for date in display_dates:
-                daily_data.append({'date': date, 'clicks': 0, 'purchases': 0})
+                daily_data.append({"date": date, "clicks": 0, "purchases": 0})
 
             # 处理每个日期的文件
             for i, date in enumerate(dates):
                 # 处理点击数据
-                click_file = os.path.join(self.log_dir, f'clicks_{date}.csv')
+                click_file = os.path.join(self.log_dir, f"clicks_{date}.csv")
                 if os.path.exists(click_file):
                     try:
                         click_df = pd.read_csv(click_file)
                         click_count = len(click_df)
                         total_clicks += click_count
-                        
+
                         # 更新每日点击数据
-                        daily_data[6 - i]['clicks'] = click_count
-                        
+                        daily_data[6 - i]["clicks"] = click_count
+
                         # 统计分类数据
-                        if 'category' in click_df.columns:
-                            category_data = click_df['category'].value_counts().to_dict()
+                        if "category" in click_df.columns:
+                            category_data = (
+                                click_df["category"].value_counts().to_dict()
+                            )
                             for cat, count in category_data.items():
                                 if cat not in category_counts:
                                     category_counts[cat] = 0
                                 category_counts[cat] += count
-                        
+
                         # 获取最近的点击记录
                         if len(recent_records) < 10:
                             # 按时间戳排序，获取最新的记录
-                            click_df['timestamp'] = pd.to_datetime(click_df['timestamp'])
-                            recent_clicks = click_df.nlargest(10 - len(recent_records), 'timestamp')
+                            click_df["timestamp"] = pd.to_datetime(
+                                click_df["timestamp"]
+                            )
+                            recent_clicks = click_df.nlargest(
+                                10 - len(recent_records), "timestamp"
+                            )
                             for _, row in recent_clicks.iterrows():
-                                recent_records.append({
-                                    'time': row['timestamp'].strftime('%H:%M:%S'),
-                                    'user_id': row['session_id'],
-                                    'item_id': row['item_id'],
-                                    'type': 'click',
-                                    'details': row.get('category', '')
-                                })
+                                recent_records.append(
+                                    {
+                                        "time": row["timestamp"].strftime("%H:%M:%S"),
+                                        "user_id": row["session_id"],
+                                        "item_id": row["item_id"],
+                                        "type": "click",
+                                        "details": row.get("category", ""),
+                                    }
+                                )
                     except Exception as e:
                         print(f"读取点击日志文件 {date} 时出错: {e}")
-                
+
                 # 处理购买数据
-                purchase_file = os.path.join(self.log_dir, f'purchases_{date}.csv')
+                purchase_file = os.path.join(self.log_dir, f"purchases_{date}.csv")
                 if os.path.exists(purchase_file):
                     try:
                         purchase_df = pd.read_csv(purchase_file)
                         purchase_count = len(purchase_df)
                         total_purchases += purchase_count
-                        
+
                         # 计算销售额
-                        if 'price' in purchase_df.columns and 'quantity' in purchase_df.columns:
-                            revenue = (purchase_df['price'] * purchase_df['quantity']).sum()
+                        if (
+                            "price" in purchase_df.columns
+                            and "quantity" in purchase_df.columns
+                        ):
+                            revenue = (
+                                purchase_df["price"] * purchase_df["quantity"]
+                            ).sum()
                             total_revenue += revenue
-                        
+
                         # 更新每日购买数据
-                        daily_data[6 - i]['purchases'] = purchase_count
-                        
+                        daily_data[6 - i]["purchases"] = purchase_count
+
                         # 获取最近的购买记录
                         if len(recent_records) < 10:
                             # 按时间戳排序，获取最新的记录
-                            purchase_df['timestamp'] = pd.to_datetime(purchase_df['timestamp'])
-                            recent_purchases = purchase_df.nlargest(10 - len(recent_records), 'timestamp')
+                            purchase_df["timestamp"] = pd.to_datetime(
+                                purchase_df["timestamp"]
+                            )
+                            recent_purchases = purchase_df.nlargest(
+                                10 - len(recent_records), "timestamp"
+                            )
                             for _, row in recent_purchases.iterrows():
                                 details = f"¥{row['price']:.2f} x {row['quantity']}"
-                                recent_records.append({
-                                    'time': row['timestamp'].strftime('%H:%M:%S'),
-                                    'user_id': row['session_id'],
-                                    'item_id': row['item_id'],
-                                    'type': 'purchase',
-                                    'details': details
-                                })
+                                recent_records.append(
+                                    {
+                                        "time": row["timestamp"].strftime("%H:%M:%S"),
+                                        "user_id": row["session_id"],
+                                        "item_id": row["item_id"],
+                                        "type": "purchase",
+                                        "details": details,
+                                    }
+                                )
                     except Exception as e:
                         print(f"读取购买日志文件 {date} 时出错: {e}")
-            
+
             # 按时间戳排序最近记录
-            recent_records.sort(key=lambda x: x['time'], reverse=True)
-            
+            recent_records.sort(key=lambda x: x["time"], reverse=True)
+
             # 转换分类数据为图表格式
             category_data = []
             category_names = {
-                'electronics': '电子产品',
-                'clothing': '服装',
-                'books': '图书',
-                'home': '家居用品',
-                'sports': '运动户外',
-                'beauty': '美妆个护',
-                'food': '食品饮料',
-                'toys': '玩具'
+                "electronics": "电子产品",
+                "clothing": "服装",
+                "books": "图书",
+                "home": "家居用品",
+                "sports": "运动户外",
+                "beauty": "美妆个护",
+                "food": "食品饮料",
+                "toys": "玩具",
             }
-            
+
             for category, count in category_counts.items():
-                display_name = category_names.get(category, '其他')
-                category_data.append({'name': display_name, 'value': count})
-            
+                display_name = category_names.get(category, "其他")
+                category_data.append({"name": display_name, "value": count})
+
             # 准备返回数据
             result = {
-                'total_clicks': total_clicks,
-                'total_purchases': total_purchases,
-                'total_revenue': round(total_revenue, 2),
-                'daily_data': daily_data,
-                'category_data': category_data,
-                'recent_records': recent_records[:10]  # 限制最近记录数量
+                "total_clicks": total_clicks,
+                "total_purchases": total_purchases,
+                "total_revenue": round(total_revenue, 2),
+                "daily_data": daily_data,
+                "category_data": category_data,
+                "recent_records": recent_records[:10],  # 限制最近记录数量
             }
-            
+
             return result
         except Exception as e:
             print(f"获取统计数据时出错: {e}")
             # 返回默认数据以避免前端错误
             return {
-                'total_clicks': 0,
-                'total_purchases': 0,
-                'total_revenue': 0.0,
-                'daily_data': [],
-                'category_data': [],
-                'recent_records': []
+                "total_clicks": 0,
+                "total_purchases": 0,
+                "total_revenue": 0.0,
+                "daily_data": [],
+                "category_data": [],
+                "recent_records": [],
             }

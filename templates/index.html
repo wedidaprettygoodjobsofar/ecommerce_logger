@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>电商平台行为记录系统</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#3b82f6',
+              secondary: '#10b981',
+              accent: '#6366f1',
+              danger: '#ef4444',
+              warning: '#f59e0b',
+              info: '#06b6d4',
+              light: '#f3f4f6',
+              dark: '#1f2937',
+            },
+            fontFamily: {
+              inter: ['Inter', 'system-ui', 'sans-serif'],
+            },
+          },
+        }
+      }
+    </script>
+    
+    <style type="text/tailwindcss">
+      @layer utilities {
+        .content-auto {
+          content-visibility: auto;
+        }
+        .card-shadow {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .transition-all-300 {
+          transition: all 300ms ease-in-out;
+        }
+      }
+    </style>
+  </head>
+  
+  <body class="font-inter bg-gray-50 min-h-screen">
+    <!-- 顶部导航栏 -->
+    <nav id="main-nav" class="bg-white shadow-md fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <span class="text-2xl font-bold text-primary flex items-center">
+              <i class="fa fa-shopping-cart mr-2"></i>
+              电商行为记录系统
+            </span>
+          </div>
+          
+          <div class="flex items-center space-x-4">
+            <button id="toggle-admin" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-all-300 flex items-center">
+              <i class="fa fa-lock mr-2"></i>管理员功能
+            </button>
+            <button id="generate-new-user" class="px-3 py-2 bg-light text-dark rounded-md hover:bg-gray-200 transition-all-300">
+              <i class="fa fa-refresh"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+      <!-- 用户设置卡片 -->
+      <div class="bg-white rounded-xl p-6 mb-8 card-shadow">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-dark flex items-center">
+            <i class="fa fa-user-circle text-primary mr-2"></i>
+            用户设置
+          </h2>
+          <div id="user-status" class="mt-2 md:mt-0 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm inline-flex items-center">
+            <span class="animate-pulse mr-2">●</span>
+            已登录
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="session_id" class="block text-sm font-medium text-gray-700 mb-1">用户ID (session_id)</label>
+          <div class="flex">
+            <input
+              type="text"
+              id="session_id"
+              class="flex-1 rounded-l-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-4 py-2"
+              placeholder="请输入用户ID"
+              value="user_{{ random.randint(1000, 9999) }}"
+            />
+            <button id="copy-user-id" class="bg-light border border-gray-300 rounded-r-md px-3 py-2 hover:bg-gray-200 transition-all-300">
+              <i class="fa fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 功能卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <!-- 点击记录卡片 -->
+        <div class="bg-white rounded-xl p-6 card-shadow hover:shadow-lg transition-all-300">
+          <h3 class="text-lg font-semibold text-dark flex items-center mb-4">
+            <i class="fa fa-mouse-pointer text-accent mr-2"></i>
+            记录点击行为
+          </h3>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="click_item_id" class="block text-sm font-medium text-gray-700 mb-1">商品ID (item_id)</label>
+              <input 
+                type="text" 
+                id="click_item_id" 
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-4 py-2"
+                placeholder="请输入商品ID" 
+              />
+            </div>
+            
+            <div>
+              <label for="click_category" class="block text-sm font-medium text-gray-700 mb-1">商品分类 (category)</label>
+              <select 
+                id="click_category" 
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-4 py-2"
+              >
+                <option value="electronics">电子产品</option>
+                <option value="clothing">服装</option>
+                <option value="books">图书</option>
+                <option value="home">家居用品</option>
+                <option value="sports">运动户外</option>
+                <option value="beauty">美妆个护</option>
+                <option value="food">食品饮料</option>
+                <option value="toys">玩具</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mt-6 flex flex-wrap gap-3">
+            <button 
+              onclick="logClick()" 
+              class="flex-1 bg-accent text-white rounded-md py-2 px-4 hover:bg-accent/90 transition-all-300 flex items-center justify-center"
+            >
+              <i class="fa fa-check mr-2"></i>记录点击
+            </button>
+            <button 
+              onclick="generateRandomClick()" 
+              class="bg-light text-dark rounded-md py-2 px-4 hover:bg-gray-200 transition-all-300 flex items-center"
+            >
+              <i class="fa fa-random mr-2"></i>随机生成
+            </button>
+          </div>
+          
+          <div id="click-result" class="mt-4 transition-all duration-300 opacity-0 h-0 overflow-hidden"></div>
+        </div>
+
+        <!-- 购买记录卡片 -->
+        <div class="bg-white rounded-xl p-6 card-shadow hover:shadow-lg transition-all-300">
+          <h3 class="text-lg font-semibold text-dark flex items-center mb-4">
+            <i class="fa fa-shopping-bag text-secondary mr-2"></i>
+            记录购买行为
+          </h3>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="buy_item_id" class="block text-sm font-medium text-gray-700 mb-1">商品ID (item_id)</label>
+              <input 
+                type="text" 
+                id="buy_item_id" 
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-4 py-2"
+                placeholder="请输入商品ID" 
+              />
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label for="buy_price" class="block text-sm font-medium text-gray-700 mb-1">价格 (price)</label>
+                <input 
+                  type="number" 
+                  id="buy_price" 
+                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-4 py-2"
+                  placeholder="请输入价格" 
+                  step="0.01" 
+                />
+              </div>
+              
+              <div>
+                <label for="buy_quantity" class="block text-sm font-medium text-gray-700 mb-1">数量 (quantity)</label>
+                <input 
+                  type="number" 
+                  id="buy_quantity" 
+                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-4 py-2"
+                  placeholder="请输入数量" 
+                  value="1" 
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6 flex flex-wrap gap-3">
+            <button 
+              onclick="logPurchase()" 
+              class="flex-1 bg-secondary text-white rounded-md py-2 px-4 hover:bg-secondary/90 transition-all-300 flex items-center justify-center"
+            >
+              <i class="fa fa-shopping-cart mr-2"></i>记录购买
+            </button>
+            <button 
+              onclick="generateRandomPurchase()" 
+              class="bg-light text-dark rounded-md py-2 px-4 hover:bg-gray-200 transition-all-300 flex items-center"
+            >
+              <i class="fa fa-random mr-2"></i>随机生成
+            </button>
+          </div>
+          
+          <div id="purchase-result" class="mt-4 transition-all duration-300 opacity-0 h-0 overflow-hidden"></div>
+        </div>
+      </div>
+
+      <!-- 管理员功能模态框 -->
+      <div id="admin-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto card-shadow">
+          <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-semibold text-dark flex items-center">
+                <i class="fa fa-cog text-primary mr-2"></i>
+                管理员功能
+              </h3>
+              <button id="close-admin-modal" class="text-gray-500 hover:text-gray-700">
+                <i class="fa fa-times text-xl"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="p-6">
+            <!-- 管理员登录 -->
+            <div id="admin-login" class="mb-6">
+              <div class="mb-4">
+                <label for="admin-password" class="block text-sm font-medium text-gray-700 mb-1">管理员密码</label>
+                <input 
+                  type="password" 
+                  id="admin-password" 
+                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-4 py-2"
+                  placeholder="请输入管理员密码" 
+                />
+                <p class="text-gray-500 text-xs mt-1">默认密码: admin123</p>
+              </div>
+              <button 
+                id="login-admin" 
+                class="w-full bg-primary text-white rounded-md py-2 px-4 hover:bg-primary/90 transition-all-300 flex items-center justify-center"
+              >
+                <i class="fa fa-sign-in mr-2"></i>登录
+              </button>
+            </div>
+            
+            <!-- 数据汇总面板 (初始隐藏) -->
+            <div id="admin-dashboard" class="hidden">
+              <div class="mb-8">
+                <h4 class="text-lg font-semibold text-dark mb-4">数据汇总统计</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <p class="text-sm text-blue-700 font-medium">总点击量</p>
+                    <p id="total-clicks" class="text-2xl font-bold text-blue-900 mt-1">0</p>
+                  </div>
+                  <div class="bg-green-50 rounded-lg p-4 border border-green-100">
+                    <p class="text-sm text-green-700 font-medium">总购买量</p>
+                    <p id="total-purchases" class="text-2xl font-bold text-green-900 mt-1">0</p>
+                  </div>
+                  <div class="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                    <p class="text-sm text-purple-700 font-medium">总销售额</p>
+                    <p id="total-revenue" class="text-2xl font-bold text-purple-900 mt-1">¥0</p>
+                  </div>
+                </div>
+                
+                <!-- 图表容器 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <h5 class="text-md font-medium text-gray-700 mb-3">点击/购买趋势</h5>
+                    <canvas id="trends-chart" height="220"></canvas>
+                  </div>
+                  <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <h5 class="text-md font-medium text-gray-700 mb-3">分类点击分布</h5>
+                    <canvas id="categories-chart" height="220"></canvas>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 最近数据表格 -->
+              <div>
+                <h4 class="text-lg font-semibold text-dark mb-4">最近记录</h4>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户ID</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">商品ID</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">详情</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recent-records" class="bg-white divide-y divide-gray-200">
+                      <!-- 动态加载的数据 -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 系统信息卡片 -->
+      <div class="bg-white rounded-xl p-6 card-shadow">
+        <h3 class="text-lg font-semibold text-dark flex items-center mb-4">
+          <i class="fa fa-info-circle text-info mr-2"></i>
+          系统信息
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-md font-medium text-gray-700 mb-2">API接口</h4>
+            <ul class="space-y-2 bg-gray-50 p-4 rounded-lg">
+              <li class="flex items-start">
+                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded mr-2 mt-0.5">POST</span>
+                <span>/api/click</span>
+              </li>
+              <li class="flex items-start">
+                <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded mr-2 mt-0.5">POST</span>
+                <span>/api/purchase</span>
+              </li>
+              <li class="flex items-start">
+                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded mr-2 mt-0.5">GET</span>
+                <span>/api/health</span>
+              </li>
+              <li class="flex items-start">
+                <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded mr-2 mt-0.5">GET</span>
+                <span>/api/stats</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 class="text-md font-medium text-gray-700 mb-2">系统状态</h4>
+            <div id="system-health" class="bg-gray-50 p-4 rounded-lg space-y-2">
+              <div class="flex justify-between items-center">
+                <span>服务器状态</span>
+                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">运行中</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span>日志目录</span>
+                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">正常</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span>当前时间</span>
+                <span id="current-time"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-6">
+      <div class="container mx-auto px-4 text-center">
+        <p class="mb-2">电商平台行为记录系统 &copy; 2023</p>
+        <p class="text-gray-400 text-sm">一个用于记录和分析用户行为的平台</p>
+      </div>
+    </footer>
+
+    <script>
+      // 初始化变量
+      let isAdminLoggedIn = false;
+      let trendsChart = null;
+      let categoriesChart = null;
+      
+      // DOM元素
+      const adminModal = document.getElementById('admin-modal');
+      const adminDashboard = document.getElementById('admin-dashboard');
+      const adminLogin = document.getElementById('admin-login');
+      const mainNav = document.getElementById('main-nav');
+      
+      // 记录点击行为
+      function logClick() {
+        const sessionId = document.getElementById("session_id").value;
+        const itemId = document.getElementById("click_item_id").value;
+        const category = document.getElementById("click_category").value;
+        const resultElement = document.getElementById('click-result');
+
+        if (!sessionId || !itemId) {
+          showAnimatedResult(resultElement, "请填写用户ID和商品ID", "error");
+          return;
+        }
+
+        fetch("/api/click", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+            item_id: itemId,
+            category: category,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            showAnimatedResult(resultElement, "点击记录成功", "success");
+          })
+          .catch((error) => {
+            showAnimatedResult(resultElement, `错误: ${error}`, "error");
+          });
+      }
+
+      // 记录购买行为
+      function logPurchase() {
+        const sessionId = document.getElementById("session_id").value;
+        const itemId = document.getElementById("buy_item_id").value;
+        const price = document.getElementById("buy_price").value;
+        const quantity = document.getElementById("buy_quantity").value;
+        const resultElement = document.getElementById('purchase-result');
+
+        if (!sessionId || !itemId || !price) {
+          showAnimatedResult(resultElement, "请填写所有必填字段", "error");
+          return;
+        }
+
+        fetch("/api/purchase", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+            item_id: itemId,
+            price: parseFloat(price),
+            quantity: parseInt(quantity),
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            showAnimatedResult(resultElement, "购买记录成功", "success");
+          })
+          .catch((error) => {
+            showAnimatedResult(resultElement, `错误: ${error}`, "error");
+          });
+      }
+
+      // 生成随机点击数据
+      function generateRandomClick() {
+        const randomItemId = "item_" + Math.floor(Math.random() * 1000);
+        const categories = [
+          "electronics",
+          "clothing",
+          "books",
+          "home",
+          "sports",
+          "beauty",
+          "food",
+          "toys",
+        ];
+        const randomCategory = 
+          categories[Math.floor(Math.random() * categories.length)];
+
+        document.getElementById("click_item_id").value = randomItemId;
+        document.getElementById("click_category").value = randomCategory;
+
+        const resultElement = document.getElementById('click-result');
+        showAnimatedResult(resultElement, '已生成随机点击数据，点击"记录点击"按钮提交', "info");
+      }
+
+      // 生成随机购买数据
+      function generateRandomPurchase() {
+        const randomItemId = "item_" + Math.floor(Math.random() * 1000);
+        const randomPrice = (Math.random() * 1000 + 10).toFixed(2);
+        const randomQuantity = Math.floor(Math.random() * 5) + 1;
+
+        document.getElementById("buy_item_id").value = randomItemId;
+        document.getElementById("buy_price").value = randomPrice;
+        document.getElementById("buy_quantity").value = randomQuantity;
+
+        const resultElement = document.getElementById('purchase-result');
+        showAnimatedResult(resultElement, '已生成随机购买数据，点击"记录购买"按钮提交', "info");
+      }
+
+      // 动画显示结果
+      function showAnimatedResult(element, message, type) {
+        // 清除之前的内容
+        element.innerHTML = '';
+        
+        // 设置样式类
+        let bgColor, textColor, borderColor, icon;
+        switch(type) {
+          case 'success':
+            bgColor = 'bg-green-50';
+            textColor = 'text-green-800';
+            borderColor = 'border-green-200';
+            icon = 'fa-check-circle';
+            break;
+          case 'error':
+            bgColor = 'bg-red-50';
+            textColor = 'text-red-800';
+            borderColor = 'border-red-200';
+            icon = 'fa-exclamation-circle';
+            break;
+          case 'info':
+            bgColor = 'bg-blue-50';
+            textColor = 'text-blue-800';
+            borderColor = 'border-blue-200';
+            icon = 'fa-info-circle';
+            break;
+          default:
+            bgColor = 'bg-gray-50';
+            textColor = 'text-gray-800';
+            borderColor = 'border-gray-200';
+            icon = 'fa-circle';
+        }
+        
+        // 创建消息元素
+        const messageElement = document.createElement('div');
+        messageElement.className = `p-3 rounded-md ${bgColor} ${textColor} ${borderColor} border flex items-start`;
+        messageElement.innerHTML = `
+          <i class="fa ${icon} mr-2 mt-0.5"></i>
+          <span>${message}</span>
+        `;
+        
+        // 添加到容器
+        element.appendChild(messageElement);
+        
+        // 显示动画
+        element.style.opacity = '0';
+        element.style.height = 'auto';
+        const height = element.offsetHeight;
+        element.style.height = '0';
+        
+        // 触发重排
+        void element.offsetWidth;
+        
+        // 应用动画
+        element.style.opacity = '1';
+        element.style.height = `${height}px`;
+        
+        // 3秒后自动隐藏
+        setTimeout(() => {
+          element.style.opacity = '0';
+          element.style.height = '0';
+        }, 3000);
+      }
+      
+      // 生成新的用户ID
+      document.getElementById('generate-new-user').addEventListener('click', function() {
+        const randomUserId = "user_" + Math.floor(Math.random() * 9000 + 1000);
+        document.getElementById("session_id").value = randomUserId;
+        
+        const userStatus = document.getElementById('user-status');
+        userStatus.innerHTML = '<span class="animate-pulse mr-2">●</span>已更新';
+        setTimeout(() => {
+          userStatus.innerHTML = '<span class="animate-pulse mr-2">●</span>已登录';
+        }, 1500);
+      });
+      
+      // 复制用户ID
+      document.getElementById('copy-user-id').addEventListener('click', function() {
+        const sessionId = document.getElementById('session_id');
+        sessionId.select();
+        document.execCommand('copy');
+        
+        const button = this;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fa fa-check"></i>';
+        button.classList.add('bg-green-100');
+        
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.classList.remove('bg-green-100');
+        }, 2000);
+      });
+      
+      // 打开管理员模态框
+      document.getElementById('toggle-admin').addEventListener('click', function() {
+        adminModal.classList.remove('hidden');
+        adminModal.classList.add('flex');
+        
+        // 如果已经登录，直接显示仪表盘
+        if (isAdminLoggedIn) {
+          showAdminDashboard();
+        } else {
+          adminDashboard.classList.add('hidden');
+          adminLogin.classList.remove('hidden');
+        }
+      });
+      
+      // 关闭管理员模态框
+      document.getElementById('close-admin-modal').addEventListener('click', function() {
+        adminModal.classList.add('hidden');
+        adminModal.classList.remove('flex');
+      });
+      
+      // 管理员登录
+      document.getElementById('login-admin').addEventListener('click', function() {
+        const password = document.getElementById('admin-password').value;
+        
+        // 简单的密码验证 (实际应用中应该更安全)
+        if (password === 'admin123') {
+          isAdminLoggedIn = true;
+          showAdminDashboard();
+          document.getElementById('toggle-admin').innerHTML = '<i class="fa fa-unlock mr-2"></i>管理员功能';
+          document.getElementById('toggle-admin').classList.remove('bg-primary');
+          document.getElementById('toggle-admin').classList.add('bg-green-600');
+        } else {
+          alert('密码错误，请重试');
+        }
+      });
+      
+      // 显示管理员仪表盘
+      function showAdminDashboard() {
+        adminLogin.classList.add('hidden');
+        adminDashboard.classList.remove('hidden');
+        
+        // 加载数据
+        loadAdminData();
+      }
+      
+      // 加载管理员数据
+      function loadAdminData() {
+        // 请求统计数据 (模拟数据，实际应该从API获取)
+        // 在真实应用中，这里应该调用后端API获取数据
+        
+        // 模拟数据
+        const mockData = {
+          total_clicks: 1254,
+          total_purchases: 328,
+          total_revenue: 89520.50,
+          daily_data: [
+            { date: '9/1', clicks: 120, purchases: 25 },
+            { date: '9/2', clicks: 190, purchases: 32 },
+            { date: '9/3', clicks: 155, purchases: 28 },
+            { date: '9/4', clicks: 210, purchases: 45 },
+            { date: '9/5', clicks: 180, purchases: 38 },
+            { date: '9/6', clicks: 250, purchases: 52 },
+            { date: '9/7', clicks: 240, purchases: 48 }
+          ],
+          category_data: [
+            { name: '电子产品', value: 350 },
+            { name: '服装', value: 280 },
+            { name: '图书', value: 180 },
+            { name: '家居用品', value: 210 },
+            { name: '运动户外', value: 150 },
+            { name: '美妆个护', value: 120 },
+            { name: '其他', value: 64 }
+          ],
+          recent_records: [
+            { time: '12:35:21', user_id: 'user_8745', item_id: 'item_456', type: 'click', details: '电子产品' },
+            { time: '12:34:18', user_id: 'user_3456', item_id: 'item_789', type: 'purchase', details: '¥399.00 x 1' },
+            { time: '12:30:05', user_id: 'user_5678', item_id: 'item_234', type: 'click', details: '服装' },
+            { time: '12:28:42', user_id: 'user_7890', item_id: 'item_567', type: 'click', details: '图书' },
+            { time: '12:25:10', user_id: 'user_2345', item_id: 'item_890', type: 'purchase', details: '¥199.50 x 2' }
+          ]
+        };
+        
+        // 更新统计数据
+        document.getElementById('total-clicks').textContent = mockData.total_clicks.toLocaleString();
+        document.getElementById('total-purchases').textContent = mockData.total_purchases.toLocaleString();
+        document.getElementById('total-revenue').textContent = '¥' + mockData.total_revenue.toLocaleString();
+        
+        // 更新趋势图表
+        updateTrendsChart(mockData.daily_data);
+        
+        // 更新分类图表
+        updateCategoriesChart(mockData.category_data);
+        
+        // 更新最近记录表格
+        updateRecentRecords(mockData.recent_records);
+      }
+      
+      // 更新趋势图表
+      function updateTrendsChart(dailyData) {
+        const ctx = document.getElementById('trends-chart').getContext('2d');
+        
+        // 销毁现有图表
+        if (trendsChart) {
+          trendsChart.destroy();
+        }
+        
+        // 准备数据
+        const labels = dailyData.map(item => item.date);
+        const clicksData = dailyData.map(item => item.clicks);
+        const purchasesData = dailyData.map(item => item.purchases);
+        
+        // 创建新图表
+        trendsChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: '点击量',
+                data: clicksData,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.3,
+                fill: true
+              },
+              {
+                label: '购买量',
+                data: purchasesData,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.3,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  usePointStyle: true,
+                  boxWidth: 6
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      // 更新分类图表
+      function updateCategoriesChart(categoryData) {
+        const ctx = document.getElementById('categories-chart').getContext('2d');
+        
+        // 销毁现有图表
+        if (categoriesChart) {
+          categoriesChart.destroy();
+        }
+        
+        // 准备数据
+        const labels = categoryData.map(item => item.name);
+        const data = categoryData.map(item => item.value);
+        
+        // 随机颜色生成器
+        const generateColors = (count) => {
+          const colors = [];
+          for (let i = 0; i < count; i++) {
+            const hue = i * (360 / count);
+            colors.push(`hsl(${hue}, 70%, 60%)`);
+          }
+          return colors;
+        };
+        
+        const backgroundColors = generateColors(labels.length);
+        
+        // 创建新图表
+        categoriesChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: backgroundColors,
+              borderWidth: 0,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: {
+                  usePointStyle: true,
+                  boxWidth: 6,
+                  padding: 10
+                }
+              }
+            },
+            cutout: '60%'
+          }
+        });
+      }
+      
+      // 更新最近记录表格
+      function updateRecentRecords(records) {
+        const tableBody = document.getElementById('recent-records');
+        tableBody.innerHTML = '';
+        
+        records.forEach(record => {
+          const row = document.createElement('tr');
+          
+          // 设置类型样式
+          let typeStyle, typeIcon;
+          if (record.type === 'click') {
+            typeStyle = 'bg-blue-100 text-blue-800';
+            typeIcon = 'fa-mouse-pointer';
+          } else {
+            typeStyle = 'bg-green-100 text-green-800';
+            typeIcon = 'fa-shopping-cart';
+          }
+          
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.time}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.user_id}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.item_id}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeStyle}">
+                <i class="fa ${typeIcon} mr-1"></i>${record.type === 'click' ? '点击' : '购买'}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.details}</td>
+          `;
+          
+          tableBody.appendChild(row);
+        });
+      }
+      
+      // 显示当前时间
+      function updateCurrentTime() {
+        const now = new Date();
+        const timeString = now.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        document.getElementById('current-time').textContent = timeString;
+      }
+      
+      // 滚动时改变导航栏样式
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 10) {
+          mainNav.classList.add('shadow-lg');
+          mainNav.classList.remove('shadow-md');
+        } else {
+          mainNav.classList.remove('shadow-lg');
+          mainNav.classList.add('shadow-md');
+        }
+      });
+      
+      // 页面加载时执行
+      document.addEventListener("DOMContentLoaded", function () {
+        // 生成随机用户ID
+        const randomUserId = "user_" + Math.floor(Math.random() * 9000 + 1000);
+        document.getElementById("session_id").value = randomUserId;
+        
+        // 更新当前时间
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+      });
+    </script>
+  </body>
+</html>
